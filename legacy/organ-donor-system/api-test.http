@@ -1,0 +1,25 @@
+POST http://localhost/organ-donor-system/donors
+Content-Type: application/json
+
+{
+    "user_id": 1,
+    "age": 30,
+    "blood_type": "O+",
+    "organ": "Kidney",
+    "availability": "Available",
+    "phone": "1234567890"
+}
+
+GET http://localhost/organ-donor-system/donors
+
+GET http://localhost/organ-donor-system/donors/{id}
+
+PUT http://localhost/organ-donor-system/donors/{id}
+Content-Type: application/json
+
+{
+    "age": 31,
+    "availability": "Not Available"
+}
+
+DELETE http://localhost/organ-donor-system/donors/{id}

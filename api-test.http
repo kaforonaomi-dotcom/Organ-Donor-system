@@ -1,0 +1,311 @@
+@baseUrl = http://localhost/Organ-Donor-system
+@testPassword = TestPassword123!
+@donorEmailA = backend.donor.a.{{$timestamp}}@example.test
+@recipientEmailA = backend.recipient.a.{{$timestamp}}@example.test
+@donorEmailB = backend.donor.b.{{$timestamp}}@example.test
+@recipientEmailB = backend.recipient.b.{{$timestamp}}@example.test
+
+### 1. Health
+# @name health
+GET {{baseUrl}}/
+
+### 2. User registration - donor A
+# @name registerDonorA
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "full_name": "Backend Test Donor A",
+  "email": "{{donorEmailA}}",
+  "password": "{{testPassword}}",
+  "role": "donor"
+}
+
+### User registration - recipient A
+# @name registerRecipientA
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "full_name": "Backend Test Recipient A",
+  "email": "{{recipientEmailA}}",
+  "password": "{{testPassword}}",
+  "role": "recipient"
+}
+
+### User registration - donor B
+# @name registerDonorB
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "full_name": "Backend Test Donor B",
+  "email": "{{donorEmailB}}",
+  "password": "{{testPassword}}",
+  "role": "donor"
+}
+
+### User registration - recipient B
+# @name registerRecipientB
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "full_name": "Backend Test Recipient B",
+  "email": "{{recipientEmailB}}",
+  "password": "{{testPassword}}",
+  "role": "recipient"
+}
+
+### Response variables from registration requests
+@donorUserIdA = {{registerDonorA.response.body.$.user_id}}
+@recipientUserIdA = {{registerRecipientA.response.body.$.user_id}}
+@donorUserIdB = {{registerDonorB.response.body.$.user_id}}
+@recipientUserIdB = {{registerRecipientB.response.body.$.user_id}}
+
+### 3. Login
+POST {{baseUrl}}/users?action=login
+Content-Type: application/json
+
+{
+  "email": "{{donorEmailA}}",
+  "password": "{{testPassword}}"
+}
+
+### Incorrect password should return 401
+POST {{baseUrl}}/users?action=login
+Content-Type: application/json
+
+{
+  "email": "{{donorEmailA}}",
+  "password": "WrongPassword123!"
+}
+
+### 4. Donor - create donor A
+# @name createDonorA
+POST {{baseUrl}}/donors
+Content-Type: application/json
+
+{
+  "user_id": {{donorUserIdA}},
+  "age": 30,
+  "blood_type": "O+",
+  "organ": "kidney",
+  "availability": "available",
+  "phone": "5550000001"
+}
+
+### Duplicate donor A should return 409
+POST {{baseUrl}}/donors
+Content-Type: application/json
+
+{
+  "user_id": {{donorUserIdA}},
+  "age": 30,
+  "blood_type": "O+",
+  "organ": "kidney",
+  "availability": "available",
+  "phone": "5550000001"
+}
+
+### Donor A response ID
+@donorIdA = {{createDonorA.response.body.$.donor_id}}
+
+### Create donor B for rejection match
+# @name createDonorB
+POST {{baseUrl}}/donors
+Content-Type: application/json
+
+{
+  "user_id": {{donorUserIdB}},
+  "age": 35,
+  "blood_type": "A+",
+  "organ": "liver",
+  "availability": "available",
+  "phone": "5550000002"
+}
+
+@donorIdB = {{createDonorB.response.body.$.donor_id}}
+
+### Read donors
+GET {{baseUrl}}/donors
+
+### Read donor A
+GET {{baseUrl}}/donors?id={{donorIdA}}
+
+### Update donor A
+PATCH {{baseUrl}}/donors?id={{donorIdA}}
+Content-Type: application/json
+
+{
+  "age": 31,
+  "availability": "not available"
+}
+
+### Restore donor A availability for matching
+PATCH {{baseUrl}}/donors?id={{donorIdA}}
+Content-Type: application/json
+
+{
+  "availability": "available"
+}
+
+### 5. Recipient - create recipient A
+# @name createRecipientA
+POST {{baseUrl}}/recipients
+Content-Type: application/json
+
+{
+  "user_id": {{recipientUserIdA}},
+  "age": 40,
+  "blood_type": "O+",
+  "organ_needed": "kidney",
+  "urgency": "high",
+  "hospital": "Backend Test Hospital A"
+}
+
+### Duplicate recipient A should return 409
+POST {{baseUrl}}/recipients
+Content-Type: application/json
+
+{
+  "user_id": {{recipientUserIdA}},
+  "age": 40,
+  "blood_type": "O+",
+  "organ_needed": "kidney",
+  "urgency": "high",
+  "hospital": "Backend Test Hospital A"
+}
+
+@recipientIdA = {{createRecipientA.response.body.$.recipient_id}}
+
+### Create recipient B for rejection match
+# @name createRecipientB
+POST {{baseUrl}}/recipients
+Content-Type: application/json
+
+{
+  "user_id": {{recipientUserIdB}},
+  "age": 45,
+  "blood_type": "A+",
+  "organ_needed": "liver",
+  "urgency": "medium",
+  "hospital": "Backend Test Hospital B"
+}
+
+@recipientIdB = {{createRecipientB.response.body.$.recipient_id}}
+
+### Read recipients
+GET {{baseUrl}}/recipients
+
+### Read recipient A
+GET {{baseUrl}}/recipients?id={{recipientIdA}}
+
+### Update recipient A
+PUT {{baseUrl}}/recipients?id={{recipientIdA}}
+Content-Type: application/json
+
+{
+  "urgency": "critical"
+}
+
+### 6. Matching - possible compatible matches
+GET {{baseUrl}}/matches?action=possible
+
+### Match A - create pending compatible match
+# @name createMatchA
+POST {{baseUrl}}/matches
+Content-Type: application/json
+
+{
+  "donor_id": {{donorIdA}},
+  "recipient_id": {{recipientIdA}}
+}
+
+### Duplicate Match A should return 409
+POST {{baseUrl}}/matches
+Content-Type: application/json
+
+{
+  "donor_id": {{donorIdA}},
+  "recipient_id": {{recipientIdA}}
+}
+
+@matchIdA = {{createMatchA.response.body.$.match_id}}
+
+### Approve Match A
+PATCH {{baseUrl}}/matches?action=approve&id={{matchIdA}}
+
+### Match B - create separate pending compatible match
+# @name createMatchB
+POST {{baseUrl}}/matches
+Content-Type: application/json
+
+{
+  "donor_id": {{donorIdB}},
+  "recipient_id": {{recipientIdB}}
+}
+
+@matchIdB = {{createMatchB.response.body.$.match_id}}
+
+### Reject Match B
+PATCH {{baseUrl}}/matches?action=reject&id={{matchIdB}}
+
+### Verify match states
+GET {{baseUrl}}/matches
+
+### 7. Notifications - create
+# @name createNotification
+POST {{baseUrl}}/notifications
+Content-Type: application/json
+
+{
+  "user_id": {{recipientUserIdA}},
+  "title": "Backend Test Match",
+  "message": "Synthetic notification for API testing."
+}
+
+@notificationId = {{createNotification.response.body.$.notification_id}}
+
+### List notifications
+GET {{baseUrl}}/notifications?user_id={{recipientUserIdA}}
+
+### Mark notification as read
+PATCH {{baseUrl}}/notifications?action=read&id={{notificationId}}
+
+### Delete notification
+DELETE {{baseUrl}}/notifications?id={{notificationId}}
+
+### 8. Validation and error handling
+### GET /users should return 405
+GET {{baseUrl}}/users
+
+### Invalid JSON should return 400
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{"invalid":
+
+### Missing required fields should return 422
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{}
+
+### Nonexistent donor update should return 404
+PATCH {{baseUrl}}/donors?id=999999999
+Content-Type: application/json
+
+{"age":31}
+
+### Nonexistent recipient update should return 404
+PATCH {{baseUrl}}/recipients?id=999999999
+Content-Type: application/json
+
+{"age":31}
+
+### Delete test donor and recipient records last
+DELETE {{baseUrl}}/donors?id={{donorIdA}}
+DELETE {{baseUrl}}/donors?id={{donorIdB}}
+DELETE {{baseUrl}}/recipients?id={{recipientIdA}}
+DELETE {{baseUrl}}/recipients?id={{recipientIdB}}

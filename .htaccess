@@ -1,0 +1,12 @@
+RewriteEngine On
+DirectoryIndex index.php
+
+RewriteRule ^(users|donors|recipients|matches|notifications)/?$ index.php?resource=$1 [QSA,L]
+
+<FilesMatch "^(\.env|.*\.bak|.*\.sql)$">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "^(\.gitignore|\.gitinore)$">
+    Require all denied
+</FilesMatch>
